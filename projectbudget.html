@@ -1,0 +1,2223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Budget Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { 
+            font-family: 'Inter', sans-serif; 
+            box-sizing: border-box;
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+
+
+    <!-- Instructions Modal -->
+    <div id="instructionsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2">📋 Google Sheets Information</h2>
+                        <p class="text-gray-600">Your Google Sheets are already connected and ready to use</p>
+                    </div>
+                    <button id="closeInstructionsModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="space-y-6">
+                    <!-- Connection Status -->
+                    <div class="border-l-4 border-blue-500 pl-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">🔗 How to Connect Your Google Sheets</h3>
+                        <p class="text-gray-600 mb-3">Follow these simple steps to connect your own Google Sheets to the budget tracker:</p>
+                        
+                        <div class="bg-blue-50 rounded-lg p-4 mb-4">
+                            <h4 class="font-semibold text-blue-800 mb-3">Step 1: Prepare Your Google Sheet</h4>
+                            <ol class="list-decimal list-inside text-blue-700 space-y-2 text-sm">
+                                <li>Create a new Google Sheet or use an existing one</li>
+                                <li>Make sure your data follows the structure shown below</li>
+                                <li>Ensure your sheet is publicly viewable (see Step 2)</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="bg-green-50 rounded-lg p-4 mb-4">
+                            <h4 class="font-semibold text-green-800 mb-3">Step 2: Make Your Sheet Public</h4>
+                            <ol class="list-decimal list-inside text-green-700 space-y-2 text-sm">
+                                <li>In your Google Sheet, click "Share" (top right)</li>
+                                <li>Click "Change to anyone with the link"</li>
+                                <li>Set permission to "Viewer"</li>
+                                <li>Copy the share link</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="bg-orange-50 rounded-lg p-4 mb-4">
+                            <h4 class="font-semibold text-orange-800 mb-3">Step 3: Get the CSV Export URL</h4>
+                            <p class="text-orange-700 text-sm mb-2">Convert your share link to a CSV export URL:</p>
+                            <div class="bg-white rounded p-3 text-xs font-mono">
+                                <p class="text-gray-600 mb-1">Original link:</p>
+                                <p class="text-blue-600 mb-2">https://docs.google.com/spreadsheets/d/<span class="bg-yellow-200">SHEET_ID</span>/edit#gid=0</p>
+                                <p class="text-gray-600 mb-1">Convert to:</p>
+                                <p class="text-green-600">https://docs.google.com/spreadsheets/d/<span class="bg-yellow-200">SHEET_ID</span>/export?format=csv&gid=0</p>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-purple-50 rounded-lg p-4">
+                            <h4 class="font-semibold text-purple-800 mb-3">Step 4: Update the Code</h4>
+                            <p class="text-purple-700 text-sm mb-2">Replace the URLs in the code with your CSV export URLs:</p>
+                            <div class="bg-white rounded p-3 text-xs">
+                                <p class="text-gray-600 mb-1">Find this section in the code and replace with your URLs:</p>
+                                <pre class="text-gray-800">let sheetUrls = {
+    q1: 'YOUR_Q1_CSV_URL_HERE',
+    q2: 'YOUR_Q2_CSV_URL_HERE',
+    q3: 'YOUR_Q3_CSV_URL_HERE',
+    q4: 'YOUR_Q4_CSV_URL_HERE',
+    daily: 'YOUR_DAILY_CSV_URL_HERE'
+};</pre>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-50 rounded-lg p-4 mb-3">
+                            <h4 class="font-medium text-gray-800 mb-2">📊 Projects Sheet Structure:</h4>
+                            <div class="grid grid-cols-7 gap-2 text-sm">
+                                <div class="bg-blue-100 p-2 rounded text-center font-medium">Project ID</div>
+                                <div class="bg-blue-100 p-2 rounded text-center font-medium">Name</div>
+                                <div class="bg-blue-100 p-2 rounded text-center font-medium">Manager</div>
+                                <div class="bg-blue-100 p-2 rounded text-center font-medium">Status</div>
+                                <div class="bg-blue-100 p-2 rounded text-center font-medium">Total Budget</div>
+                                <div class="bg-blue-100 p-2 rounded text-center font-medium">Used Budget</div>
+                                <div class="bg-blue-100 p-2 rounded text-center font-medium">Category</div>
+                            </div>
+                            <div class="mt-3 p-3 bg-yellow-50 rounded text-xs">
+                                <p class="font-medium text-yellow-800 mb-1">💡 Project ID Tips:</p>
+                                <ul class="text-yellow-700 space-y-1">
+                                    <li>• Use custom IDs like "WEB001", "MKT002", "DEV003"</li>
+                                    <li>• Or simple numbers like "1", "2", "3"</li>
+                                    <li>• If no Project ID column, row numbers will be used automatically</li>
+                                    <li>• Make sure Project IDs match exactly in both sheets</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h4 class="font-medium text-gray-800 mb-2">📅 Expenses Sheet Structure (Optional - Sheet 2):</h4>
+                            <div class="grid grid-cols-5 gap-2 text-sm">
+                                <div class="bg-green-100 p-2 rounded text-center font-medium">Project ID</div>
+                                <div class="bg-green-100 p-2 rounded text-center font-medium">Description</div>
+                                <div class="bg-green-100 p-2 rounded text-center font-medium">Category</div>
+                                <div class="bg-green-100 p-2 rounded text-center font-medium">Date</div>
+                                <div class="bg-green-100 p-2 rounded text-center font-medium">Amount</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- How It Works -->
+                    <div class="border-l-4 border-blue-500 pl-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">🔄 How It Works</h3>
+                        <ol class="list-decimal list-inside text-gray-600 space-y-1">
+                            <li>Your Google Sheets are already configured and accessible</li>
+                            <li>Click "Sync All Data" to load the latest information</li>
+                            <li>Individual quarter data can be loaded separately</li>
+                            <li>Auto-refresh keeps your data up to date</li>
+                        </ol>
+                    </div>
+
+                    <!-- Data Structure -->
+                    <div class="border-l-4 border-orange-500 pl-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">📊 Expected Data Structure</h3>
+                        <p class="text-gray-600 mb-2">Your Google Sheets should follow this structure for optimal compatibility:</p>
+                        <div class="bg-gray-50 rounded-lg p-4 text-sm">
+                            <p class="mb-2"><strong>Projects Sheet Columns:</strong></p>
+                            <code class="text-blue-600">Project ID | Name | Manager | Status | Total Budget | Used Budget | Category</code>
+                            <p class="mt-3 mb-2"><strong>Expenses Sheet Columns (Optional):</strong></p>
+                            <code class="text-green-600">Project ID | Description | Category | Date | Amount | Quarter</code>
+                            <p class="mt-3 text-xs text-gray-600">
+                                <strong>Note:</strong> Project ID column is optional. If not provided, row numbers (1, 2, 3...) will be used automatically.<br>
+                                <strong>Quarter Column:</strong> Use 1, 2, 3, or 4 to specify which quarter each expense belongs to. This enables cumulative reporting where Q2 shows Q1+Q2 expenses, Q3 shows Q1+Q2+Q3 expenses, etc.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Connection Testing -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h4 class="font-medium text-gray-800 mb-3">🧪 Test Your Connections</h4>
+                        <p class="text-gray-600 text-sm mb-4">Once you've updated the URLs in the code, use these buttons to test your connections:</p>
+                        
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            <button onclick="loadSheetData('expenses')" class="bg-teal-600 text-white px-3 py-2 rounded text-sm hover:bg-teal-700 transition-colors">
+                                Load Expenses First
+                            </button>
+                            <button onclick="loadSheetData('q1')" class="bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 transition-colors">
+                                Load Q1
+                            </button>
+                            <button onclick="loadSheetData('q2')" class="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 transition-colors">
+                                Load Q2
+                            </button>
+                            <button onclick="loadSheetData('q3')" class="bg-orange-600 text-white px-3 py-2 rounded text-sm hover:bg-orange-700 transition-colors">
+                                Load Q3
+                            </button>
+                            <button onclick="loadSheetData('q4')" class="bg-purple-600 text-white px-3 py-2 rounded text-sm hover:bg-purple-700 transition-colors">
+                                Load Q4
+                            </button>
+                            <button onclick="loadAllSheets()" class="bg-indigo-600 text-white px-3 py-2 rounded text-sm hover:bg-indigo-700 transition-colors">
+                                Sync All Data
+                            </button>
+                        </div>
+                        
+                        <div class="mt-4 space-y-2 text-xs">
+                            <div class="flex items-center justify-between">
+                                <span class="font-medium text-gray-700">Q1 2024:</span>
+                                <span id="q1Status" class="text-gray-500">Not tested</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="font-medium text-gray-700">Q2 2024:</span>
+                                <span id="q2Status" class="text-gray-500">Not tested</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="font-medium text-gray-700">Q3 2024:</span>
+                                <span id="q3Status" class="text-gray-500">Not tested</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="font-medium text-gray-700">Q4 2024:</span>
+                                <span id="q4Status" class="text-gray-500">Not tested</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="font-medium text-gray-700">Expense Tracking:</span>
+                                <span id="expensesStatus" class="text-gray-500">Not tested</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tips -->
+                    <div class="bg-yellow-50 rounded-lg p-4">
+                        <h4 class="font-medium text-yellow-800 mb-2">💡 Usage Tips:</h4>
+                        <ul class="list-disc list-inside text-yellow-700 space-y-1 text-sm">
+                            <li>Click "Sync All Data" to refresh information from all sheets</li>
+                            <li>Use individual load buttons for specific quarters</li>
+                            <li>Enable auto-refresh to keep data current automatically</li>
+                            <li>Ensure your Google Sheets follow the expected column structure</li>
+                            <li>Use YYYY-MM-DD format for dates and numbers only for amounts</li>
+                            <li>Project IDs can be text (WEB001) or numbers (1, 2, 3)</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex justify-end">
+                    <button id="closeInstructionsBtn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        Got it!
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Home Page -->
+    <div id="homePage" class="container mx-auto px-6 py-8">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <div class="flex justify-between items-center mb-8">
+                <div></div>
+                <div>
+                    <h1 class="text-5xl font-bold text-gray-800 mb-4">Project Budget Tracker</h1>
+                    <p class="text-xl text-gray-600">Monitor and track budget utilization across all projects</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button id="syncAllData" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                        🔄 Sync All Data
+                    </button>
+                    <div id="syncStatus" class="text-sm text-gray-500"></div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Navigation Cards -->
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-12">Choose Your View</h2>
+            
+            <!-- Quarterly Reports Section -->
+            <div class="mb-16">
+                <h3 class="text-2xl font-semibold text-gray-700 mb-8 text-center">📊 Quarterly Reports</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Q1 Card -->
+                    <div class="bg-white rounded-xl shadow-lg card-hover cursor-pointer overflow-hidden" onclick="navigateToView('q1')">
+                        <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="text-2xl font-bold">Q1 2024</h4>
+                                    <p class="text-blue-100">Jan - Mar</p>
+                                </div>
+                                <div class="text-4xl opacity-80">🌱</div>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-gray-600 mb-4">View first quarter budget performance and project progress</p>
+                            <div class="flex items-center text-blue-600 font-medium">
+                                <span>View Q1 Report</span>
+                                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Q2 Card -->
+                    <div class="bg-white rounded-xl shadow-lg card-hover cursor-pointer overflow-hidden" onclick="navigateToView('q2')">
+                        <div class="bg-gradient-to-r from-green-500 to-green-600 p-6 text-white">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="text-2xl font-bold">Q2 2024</h4>
+                                    <p class="text-green-100">Apr - Jun</p>
+                                </div>
+                                <div class="text-4xl opacity-80">🌿</div>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-gray-600 mb-4">Analyze second quarter spending and budget utilization</p>
+                            <div class="flex items-center text-green-600 font-medium">
+                                <span>View Q2 Report</span>
+                                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Q3 Card -->
+                    <div class="bg-white rounded-xl shadow-lg card-hover cursor-pointer overflow-hidden" onclick="navigateToView('q3')">
+                        <div class="bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="text-2xl font-bold">Q3 2024</h4>
+                                    <p class="text-orange-100">Jul - Sep</p>
+                                </div>
+                                <div class="text-4xl opacity-80">🍂</div>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-gray-600 mb-4">Review third quarter financial performance and trends</p>
+                            <div class="flex items-center text-orange-600 font-medium">
+                                <span>View Q3 Report</span>
+                                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Q4 Card -->
+                    <div class="bg-white rounded-xl shadow-lg card-hover cursor-pointer overflow-hidden" onclick="navigateToView('q4')">
+                        <div class="bg-gradient-to-r from-purple-500 to-purple-600 p-6 text-white">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="text-2xl font-bold">Q4 2024</h4>
+                                    <p class="text-purple-100">Oct - Dec</p>
+                                </div>
+                                <div class="text-4xl opacity-80">❄️</div>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-gray-600 mb-4">Examine fourth quarter results and year-end summary</p>
+                            <div class="flex items-center text-purple-600 font-medium">
+                                <span>View Q4 Report</span>
+                                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+
+        </div>
+    </div>
+
+    <!-- Detailed View Page (Hidden by default) -->
+    <div id="detailPage" class="hidden container mx-auto px-6 py-8">
+        <!-- Back Button -->
+        <div class="mb-6">
+            <button id="backToHome" class="flex items-center text-gray-600 hover:text-gray-800 transition-colors">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Back to Home
+            </button>
+        </div>
+
+        <!-- Dynamic Content Area -->
+        <div id="dynamicContent">
+            <!-- Content will be loaded here based on selection -->
+        </div>
+
+        <!-- Project Detail Modal -->
+        <div id="projectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+            <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-auto my-8 m-4">
+                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                    <h2 id="modalTitle" class="text-2xl font-bold text-gray-800"></h2>
+                    <button id="closeModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="p-6">
+                    <!-- Project Overview -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <h3 class="text-sm font-medium text-blue-600 mb-1">Total Budget</h3>
+                            <p id="modalTotalBudget" class="text-2xl font-bold text-blue-800"></p>
+                        </div>
+                        <div class="bg-green-50 rounded-lg p-4">
+                            <h3 class="text-sm font-medium text-green-600 mb-1">Used Budget</h3>
+                            <p id="modalUsedBudget" class="text-2xl font-bold text-green-800"></p>
+                        </div>
+                        <div class="bg-orange-50 rounded-lg p-4">
+                            <h3 class="text-sm font-medium text-orange-600 mb-1">Earmarked</h3>
+                            <p id="modalEarmarkedBudget" class="text-2xl font-bold text-orange-800"></p>
+                        </div>
+                        <div class="bg-purple-50 rounded-lg p-4">
+                            <h3 class="text-sm font-medium text-purple-600 mb-1">Available</h3>
+                            <p id="modalAvailableBudget" class="text-2xl font-bold text-purple-800"></p>
+                        </div>
+                    </div>
+
+                    <!-- Budget Utilization Chart -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Budget Utilization</h3>
+                        <div class="bg-gray-100 rounded-lg p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm font-medium text-gray-700">Progress</span>
+                                <span id="modalUtilizationPercent" class="text-sm font-bold text-gray-800"></span>
+                            </div>
+                            <div class="w-full bg-gray-300 rounded-full h-4">
+                                <div id="modalProgressBar" class="h-4 rounded-full transition-all duration-500"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Project Details -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-3">Project Information</h3>
+                            <div class="space-y-3">
+                                <div>
+                                    <span class="text-sm text-gray-500">Project ID:</span>
+                                    <span id="modalProjectId" class="ml-2 font-medium text-gray-800"></span>
+                                </div>
+                                <div>
+                                    <span class="text-sm text-gray-500">Manager:</span>
+                                    <span id="modalManager" class="ml-2 font-medium text-gray-800"></span>
+                                </div>
+                                <div>
+                                    <span class="text-sm text-gray-500">Status:</span>
+                                    <span id="modalStatus" class="ml-2 px-2 py-1 rounded-full text-xs font-medium"></span>
+                                </div>
+                                <div>
+                                    <span class="text-sm text-gray-500">Category:</span>
+                                    <span id="modalCategory" class="ml-2 font-medium text-gray-800"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabs for Expenses and Earmarked Items -->
+                    <div class="mb-6">
+                        <div class="border-b border-gray-200">
+                            <nav class="-mb-px flex space-x-8">
+                                <button id="expensesTab" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors">
+                                    Expenses Breakdown
+                                </button>
+                                <button id="earmarkedTab" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors">
+                                    Earmarked Items
+                                </button>
+                            </nav>
+                        </div>
+                    </div>
+
+                    <!-- Expenses List -->
+                    <div id="expensesSection">
+                        <div class="bg-gray-50 rounded-lg overflow-hidden">
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-gray-100">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="expensesList" class="bg-white divide-y divide-gray-200">
+                                        <!-- Expenses will be populated here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Earmarked Items List -->
+                    <div id="earmarkedSection" class="hidden">
+                        <div class="bg-orange-50 rounded-lg overflow-hidden">
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-orange-100">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-orange-700 uppercase tracking-wider">Description</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-orange-700 uppercase tracking-wider">Category</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-orange-700 uppercase tracking-wider">Expected Date</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-orange-700 uppercase tracking-wider">Priority</th>
+                                            <th class="px-4 py-3 text-right text-xs font-medium text-orange-700 uppercase tracking-wider">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="earmarkedList" class="bg-white divide-y divide-gray-200">
+                                        <!-- Earmarked items will be populated here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        
+        // Data storage for different quarters and expense tracking
+        let quarterlyData = {
+            q1: { projects: [], lastUpdated: null, fileName: null },
+            q2: { projects: [], lastUpdated: null, fileName: null },
+            q3: { projects: [], lastUpdated: null, fileName: null },
+            q4: { projects: [], lastUpdated: null, fileName: null },
+            expenses: { expenses: [], lastUpdated: null, fileName: null },
+            earmarked: { items: [], lastUpdated: null, fileName: null }
+        };
+
+        // Google Sheets configuration - Separate Workbooks
+        let sheetUrls = {
+            // Project sheets (different sheets within the same workbook)
+            q1: 'https://docs.google.com/spreadsheets/d/11xxi8k1iBOJbBwuqwAWImFEzjBdTjE-WEzdpflGGtLs/export?format=csv&gid=510042793',
+            q2: 'https://docs.google.com/spreadsheets/d/11xxi8k1iBOJbBwuqwAWImFEzjBdTjE-WEzdpflGGtLs/export?format=csv&gid=261036676',
+            q3: 'https://docs.google.com/spreadsheets/d/11xxi8k1iBOJbBwuqwAWImFEzjBdTjE-WEzdpflGGtLs/export?format=csv&gid=2037507246',
+            q4: 'https://docs.google.com/spreadsheets/d/11xxi8k1iBOJbBwuqwAWImFEzjBdTjE-WEzdpflGGtLs/export?format=csv&gid=510042793',
+            
+            // Expense tracking sheet
+            expenses: 'https://docs.google.com/spreadsheets/d/11xxi8k1iBOJbBwuqwAWImFEzjBdTjE-WEzdpflGGtLs/export?format=csv&gid=2099246389',
+            
+            // Earmarked items sheet
+            earmarked: 'https://docs.google.com/spreadsheets/d/11xxi8k1iBOJbBwuqwAWImFEzjBdTjE-WEzdpflGGtLs/export?format=csv&gid=850612406',
+            
+            // Quick stats summary sheet
+            quickStats: 'https://docs.google.com/spreadsheets/d/11xxi8k1iBOJbBwuqwAWImFEzjBdTjE-WEzdpflGGtLs/export?format=csv&gid=1975823519'
+        };
+
+        // Auto-refresh settings
+        let autoRefreshInterval = null;
+        let isAutoRefreshActive = false;
+
+        // Sample data for demonstration
+        quarterlyData.expenses.expenses = [
+            { projectId: "WEB001", projectName: "Website Redesign", description: "UI/UX Design Services", category: "Design", date: "2024-01-15", amount: 12000, Quarter: "1" },
+            { projectId: "WEB001", projectName: "Website Redesign", description: "Frontend Development", category: "Development", date: "2024-01-20", amount: 15000, Quarter: "1" },
+            { projectId: "WEB001", projectName: "Website Redesign", description: "Content Management System", category: "Software", date: "2024-02-01", amount: 3500, Quarter: "1" },
+            { projectId: "WEB001", projectName: "Website Redesign", description: "Testing & QA", category: "Quality Assurance", date: "2024-02-10", amount: 1500, Quarter: "1" },
+            { projectId: "MOB002", projectName: "Mobile App Development", description: "Project Planning & Analysis", category: "Planning", date: "2024-01-10", amount: 8000, Quarter: "1" },
+            { projectId: "MOB002", projectName: "Mobile App Development", description: "Wireframe & Prototyping", category: "Design", date: "2024-01-25", amount: 7000, Quarter: "1" },
+            { projectId: "MKT003", projectName: "Marketing Campaign Q2", description: "Social Media Advertising", category: "Advertising", date: "2024-04-05", amount: 25000, Quarter: "2" },
+            { projectId: "MKT003", projectName: "Marketing Campaign Q2", description: "Content Creation", category: "Creative", date: "2024-04-12", amount: 18000, Quarter: "2" },
+            { projectId: "MKT003", projectName: "Marketing Campaign Q2", description: "Influencer Partnerships", category: "Partnerships", date: "2024-05-20", amount: 15000, Quarter: "2" },
+            { projectId: "MKT003", projectName: "Marketing Campaign Q2", description: "Email Marketing Platform", category: "Software", date: "2024-05-01", amount: 5000, Quarter: "2" },
+            { projectId: "MKT003", projectName: "Marketing Campaign Q2", description: "Analytics & Reporting Tools", category: "Tools", date: "2024-06-05", amount: 5000, Quarter: "2" }
+        ];
+
+        // Sample earmarked items data
+        quarterlyData.earmarked.items = [
+            { projectId: "WEB001", projectName: "Website Redesign", description: "Security Audit & Penetration Testing", category: "Security", expectedDate: "2024-03-15", amount: 8000, Quarter: "1", priority: "High" },
+            { projectId: "WEB001", projectName: "Website Redesign", description: "Performance Optimization Services", category: "Development", expectedDate: "2024-03-20", amount: 4500, Quarter: "1", priority: "Medium" },
+            { projectId: "MOB002", projectName: "Mobile App Development", description: "iOS App Store Developer License", category: "Licensing", expectedDate: "2024-02-01", amount: 99, Quarter: "1", priority: "High" },
+            { projectId: "MOB002", projectName: "Mobile App Development", description: "Backend Development Phase 2", category: "Development", expectedDate: "2024-02-15", amount: 25000, Quarter: "1", priority: "High" },
+            { projectId: "MOB002", projectName: "Mobile App Development", description: "Third-party API Integration", category: "Integration", expectedDate: "2024-03-01", amount: 12000, Quarter: "1", priority: "Medium" },
+            { projectId: "MKT003", projectName: "Marketing Campaign Q2", description: "Video Production Services", category: "Creative", expectedDate: "2024-07-10", amount: 15000, Quarter: "3", priority: "Medium" },
+            { projectId: "MKT003", projectName: "Marketing Campaign Q2", description: "Influencer Contract Renewals", category: "Partnerships", expectedDate: "2024-07-01", amount: 20000, Quarter: "3", priority: "Low" }
+        ];
+
+        quarterlyData.q1.projects = [
+            {
+                id: "WEB001",
+                name: "Website Redesign",
+                manager: "Sarah Johnson",
+                status: "In Progress",
+                totalBudget: 50000,
+                usedBudget: 32000, // This will be overridden by expense calculation
+                category: "Web Development",
+                expenses: []
+            },
+            {
+                id: "MOB002",
+                name: "Mobile App Development",
+                manager: "Mike Chen",
+                status: "Planning",
+                totalBudget: 120000,
+                usedBudget: 15000, // This will be overridden by expense calculation
+                category: "Mobile Development",
+                expenses: []
+            }
+        ];
+
+        quarterlyData.q2.projects = [
+            {
+                id: "MKT003",
+                name: "Marketing Campaign Q2",
+                manager: "Emily Rodriguez",
+                status: "Active",
+                totalBudget: 75000,
+                usedBudget: 68000, // This will be overridden by expense calculation
+                category: "Marketing",
+                expenses: []
+            }
+        ];
+
+        // Current view state
+        let currentView = 'home';
+
+        function getStatusColor(status) {
+            const colors = {
+                'Planning': 'bg-yellow-100 text-yellow-800',
+                'In Progress': 'bg-blue-100 text-blue-800',
+                'Active': 'bg-green-100 text-green-800',
+                'Completed': 'bg-gray-100 text-gray-800'
+            };
+            return colors[status] || 'bg-gray-100 text-gray-800';
+        }
+
+        function getBudgetColor(percentage) {
+            if (percentage >= 90) return 'bg-red-500';
+            if (percentage >= 75) return 'bg-yellow-500';
+            if (percentage >= 50) return 'bg-blue-500';
+            return 'bg-green-500';
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+
+
+        // Helper function to properly parse CSV lines with quotes and commas
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current.trim());
+            return result;
+        }
+
+        function navigateToView(viewType) {
+            currentView = viewType;
+            document.getElementById('homePage').classList.add('hidden');
+            document.getElementById('detailPage').classList.remove('hidden');
+            
+            loadViewContent(viewType);
+        }
+
+        function loadViewContent(viewType) {
+            const dynamicContent = document.getElementById('dynamicContent');
+            
+            switch(viewType) {
+                case 'overview':
+                    loadOverviewContent();
+                    break;
+                case 'q1':
+                case 'q2':
+                case 'q3':
+                case 'q4':
+                    loadQuarterlyContent(viewType);
+                    break;
+                case 'expenses':
+                    loadExpenseContent();
+                    break;
+                default:
+                    dynamicContent.innerHTML = '<div class="text-center py-12"><h2 class="text-2xl font-bold text-gray-800">View not found</h2></div>';
+            }
+        }
+
+        function loadOverviewContent() {
+            const dynamicContent = document.getElementById('dynamicContent');
+            dynamicContent.innerHTML = `
+                <div class="text-center mb-8">
+                    <h1 class="text-4xl font-bold text-gray-800 mb-2">Project Overview</h1>
+                    <p class="text-gray-600">Complete view of all projects with search and filtering</p>
+                </div>
+
+                <!-- Search Bar -->
+                <div class="max-w-2xl mx-auto mb-8">
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="searchInput"
+                            placeholder="Search projects by name, status, or manager..."
+                            class="w-full px-6 py-4 text-lg border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none shadow-lg transition-all duration-300"
+                        >
+                        <div class="absolute right-4 top-1/2 transform -translate-y-1/2">
+                            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Projects Grid -->
+                <div id="projectsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Projects will be populated here -->
+                </div>
+
+                <!-- No Results Message -->
+                <div id="noResults" class="hidden text-center py-12">
+                    <div class="text-gray-400 mb-4">
+                        <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.467-.881-6.08-2.33"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-600 mb-2">No projects found</h3>
+                    <p class="text-gray-500">Try adjusting your search terms</p>
+                </div>
+            `;
+            
+            // Get all projects from all quarters for overview
+            const allProjects = [];
+            Object.keys(quarterlyData).forEach(key => {
+                if (key !== 'expenses') {
+                    allProjects.push(...quarterlyData[key].projects);
+                }
+            });
+            renderProjects(allProjects);
+            setupSearchFunctionality();
+        }
+
+        function loadQuarterlyContent(quarter) {
+            const quarterNum = quarter.replace('q', '');
+            const quarterNames = { '1': 'Q1 2024', '2': 'Q2 2024', '3': 'Q3 2024', '4': 'Q4 2024' };
+            const quarterPeriods = { 
+                '1': 'January - March 2024 (Q1 expenses only)', 
+                '2': 'January - June 2024 (Q1-Q2 cumulative expenses)', 
+                '3': 'January - September 2024 (Q1-Q3 cumulative expenses)', 
+                '4': 'January - December 2024 (Q1-Q4 cumulative expenses)' 
+            };
+            
+            const dynamicContent = document.getElementById('dynamicContent');
+            dynamicContent.innerHTML = `
+                <div class="text-center mb-8">
+                    <h1 class="text-4xl font-bold text-gray-800 mb-2">${quarterNames[quarterNum]} Budget Report</h1>
+                    <p class="text-gray-600">${quarterPeriods[quarterNum]}</p>
+                </div>
+
+                <!-- Search Bar -->
+                <div class="max-w-2xl mx-auto mb-8">
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="quarterSearchInput"
+                            placeholder="Search projects by name, status, or manager..."
+                            class="w-full px-6 py-4 text-lg border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none shadow-lg transition-all duration-300"
+                        >
+                        <div class="absolute right-4 top-1/2 transform -translate-y-1/2">
+                            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Total Budget</p>
+                                <p id="quarterTotalBudget" class="text-3xl font-bold text-green-600">$0</p>
+                            </div>
+                            <div class="p-3 bg-green-100 rounded-full">
+                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Total Spent</p>
+                                <p id="quarterSpentBudget" class="text-3xl font-bold text-orange-600">$0</p>
+                            </div>
+                            <div class="p-3 bg-orange-100 rounded-full">
+                                <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Remaining</p>
+                                <p id="quarterRemainingBudget" class="text-3xl font-bold text-purple-600">$0</p>
+                            </div>
+                            <div class="p-3 bg-purple-100 rounded-full">
+                                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Utilization %</p>
+                                <p id="quarterUtilizationPercent" class="text-3xl font-bold text-blue-600">0%</p>
+                            </div>
+                            <div class="p-3 bg-blue-100 rounded-full">
+                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Projects Grid -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-6">${quarterNames[quarterNum]} Projects</h3>
+                    <div id="quarterProjectsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Projects will be populated here -->
+                    </div>
+                </div>
+
+                <!-- No Results Message -->
+                <div id="quarterNoResults" class="hidden text-center py-12">
+                    <div class="text-gray-400 mb-4">
+                        <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.467-.881-6.08-2.33"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-600 mb-2">No projects found</h3>
+                    <p class="text-gray-500">Try adjusting your search terms or upload data for this quarter</p>
+                </div>
+            `;
+            
+            renderQuarterlyData(parseInt(quarterNum));
+            setupQuarterlySearch(quarter);
+        }
+
+        function loadExpenseContent() {
+            const dynamicContent = document.getElementById('dynamicContent');
+            dynamicContent.innerHTML = `
+                <div class="text-center mb-8">
+                    <h1 class="text-4xl font-bold text-gray-800 mb-2">Expense Tracker</h1>
+                    <p class="text-gray-600">Project expenses and budget utilization as of selected date</p>
+                </div>
+                
+                <!-- Date Picker -->
+                <div class="max-w-md mx-auto mb-8">
+                    <div class="bg-white rounded-xl shadow-lg p-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Report Date</label>
+                        <input type="date" id="dailyDatePicker" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Search Bar -->
+                <div class="max-w-2xl mx-auto mb-8">
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="dailySearchInput"
+                            placeholder="Search projects by name, status, or manager..."
+                            class="w-full px-6 py-4 text-lg border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none shadow-lg transition-all duration-300"
+                        >
+                        <div class="absolute right-4 top-1/2 transform -translate-y-1/2">
+                            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Total Projects</p>
+                                <p id="dailyTotalProjects" class="text-3xl font-bold text-blue-600">0</p>
+                            </div>
+                            <div class="p-3 bg-blue-100 rounded-full">
+                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Total Budget</p>
+                                <p id="dailyTotalBudget" class="text-3xl font-bold text-green-600">$0</p>
+                            </div>
+                            <div class="p-3 bg-green-100 rounded-full">
+                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Spent as of Date</p>
+                                <p id="dailySpentBudget" class="text-3xl font-bold text-orange-600">$0</p>
+                            </div>
+                            <div class="p-3 bg-orange-100 rounded-full">
+                                <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Daily Activity</p>
+                                <p id="dailyDayActivity" class="text-3xl font-bold text-purple-600">$0</p>
+                            </div>
+                            <div class="p-3 bg-purple-100 rounded-full">
+                                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Projects Table -->
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-800">Projects Status as of <span id="reportDateDisplay"></span></h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Manager</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Budget</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Spent as of Date</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Utilization</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dailyProjectsTable" class="bg-white divide-y divide-gray-200">
+                                <!-- Projects will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- No Results Message -->
+                <div id="dailyNoResults" class="hidden text-center py-12">
+                    <div class="text-gray-400 mb-4">
+                        <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.467-.881-6.08-2.33"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-600 mb-2">No projects found</h3>
+                    <p class="text-gray-500">Try adjusting your search terms or select a different date</p>
+                </div>
+            `;
+            
+            renderExpenseData();
+            setupExpenseDatePicker();
+            setupExpenseSearch();
+        }
+
+        function createProjectCard(project) {
+            const utilizationPercentage = Math.round((project.usedBudget / project.totalBudget) * 100);
+            const remainingBudget = project.totalBudget - project.usedBudget;
+            
+            return `
+                <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 cursor-pointer" onclick="openProjectModal('${project.id}')">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <div class="text-sm text-gray-500 mb-1">ID: ${project.id}</div>
+                                <h3 class="text-xl font-semibold text-gray-800 leading-tight">${project.name}</h3>
+                            </div>
+                            <span class="px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(project.status)}">
+                                ${project.status}
+                            </span>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <p class="text-gray-600 mb-1">Project Manager</p>
+                            <p class="font-medium text-gray-800">${project.manager}</p>
+                        </div>
+
+                        <div class="mb-4">
+                            <p class="text-sm text-gray-500 mb-1">${project.category}</p>
+                        </div>
+
+                        <!-- Budget Progress -->
+                        <div class="mb-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm font-medium text-gray-700">Budget Utilization</span>
+                                <span class="text-sm font-bold text-gray-800">${utilizationPercentage}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div class="h-3 rounded-full transition-all duration-500 ${getBudgetColor(utilizationPercentage)}" 
+                                     style="width: ${utilizationPercentage}%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Budget Details -->
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <p class="text-gray-500 mb-1">Total Budget</p>
+                                <p class="font-semibold text-gray-800">${formatCurrency(project.totalBudget)}</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-500 mb-1">Used</p>
+                                <p class="font-semibold text-gray-800">${formatCurrency(project.usedBudget)}</p>
+                            </div>
+                            <div class="col-span-2">
+                                <p class="text-gray-500 mb-1">Remaining</p>
+                                <p class="font-semibold ${remainingBudget < project.totalBudget * 0.1 ? 'text-red-600' : 'text-green-600'}">
+                                    ${formatCurrency(remainingBudget)}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- Click indicator -->
+                        <div class="mt-4 text-center">
+                            <span class="text-xs text-gray-400">Click to view details</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderProjects(projectsToRender) {
+            const container = document.getElementById('projectsContainer');
+            const noResults = document.getElementById('noResults');
+            
+            if (!container) return;
+            
+            if (projectsToRender.length === 0) {
+                container.innerHTML = '';
+                if (noResults) noResults.classList.remove('hidden');
+            } else {
+                if (noResults) noResults.classList.add('hidden');
+                container.innerHTML = projectsToRender.map(createProjectCard).join('');
+            }
+        }
+
+        function setupSearchFunctionality() {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    filterProjects(e.target.value);
+                });
+            }
+        }
+
+        function filterProjects(searchTerm) {
+            // Get all projects from all quarters
+            const allProjects = [];
+            Object.keys(quarterlyData).forEach(key => {
+                if (key !== 'expenses') {
+                    allProjects.push(...quarterlyData[key].projects);
+                }
+            });
+            
+            const filtered = allProjects.filter(project => {
+                const searchLower = searchTerm.toLowerCase();
+                return (
+                    project.name.toLowerCase().includes(searchLower) ||
+                    project.manager.toLowerCase().includes(searchLower) ||
+                    project.status.toLowerCase().includes(searchLower) ||
+                    project.category.toLowerCase().includes(searchLower) ||
+                    project.id.toString().toLowerCase().includes(searchLower)
+                );
+            });
+            renderProjects(filtered);
+        }
+
+        function getQuarterFromDate(dateString) {
+            const date = new Date(dateString);
+            const month = date.getMonth() + 1;
+            if (month >= 1 && month <= 3) return '1';
+            if (month >= 4 && month <= 6) return '2';
+            if (month >= 7 && month <= 9) return '3';
+            if (month >= 10 && month <= 12) return '4';
+            return '1';
+        }
+
+        function getQuartersUpTo(targetQuarter) {
+            const quarterMap = { 1: ['1'], 2: ['1', '2'], 3: ['1', '2', '3'], 4: ['1', '2', '3', '4'] };
+            return quarterMap[targetQuarter] || ['1'];
+        }
+
+        function renderQuarterlyData(quarter) {
+            // Get all projects from the current quarter sheet
+            const quarterKey = `q${quarter}`;
+            const quarterProjects = quarterlyData[quarterKey].projects || [];
+            
+            // Get quarters to include for cumulative expenses (Q1 for Q1, Q1-Q2 for Q2, etc.)
+            const quartersToInclude = getQuartersUpTo(quarter);
+            
+            // Process each project with cumulative expense calculation
+            const processedProjects = quarterProjects.map(project => {
+                // Filter expenses from expense sheet based on Quarter column
+                const cumulativeExpenses = quarterlyData.expenses.expenses.filter(expense => {
+                    // Match by project ID or project name
+                    const projectMatches = expense.projectId == project.id || 
+                                         expense.projectName?.toLowerCase().includes(project.name.toLowerCase());
+                    
+                    // Check if expense quarter is in our cumulative range
+                    const expenseQuarter = expense.Quarter || expense.quarter || getQuarterFromDate(expense.date);
+                    const quarterMatches = quartersToInclude.includes(expenseQuarter);
+                    
+                    return projectMatches && quarterMatches;
+                });
+                
+                // Calculate cumulative spent amount
+                const cumulativeSpentAmount = cumulativeExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
+                
+                // Return project with updated used budget from cumulative expenses
+                return {
+                    ...project,
+                    usedBudget: cumulativeSpentAmount, // Override with cumulative expenses
+                    expenses: cumulativeExpenses
+                };
+            });
+            
+            // Calculate totals
+            const totalCumulativeBudget = processedProjects.reduce((sum, project) => sum + (project.totalBudget || 0), 0);
+            const totalCumulativeSpent = processedProjects.reduce((sum, project) => sum + (project.usedBudget || 0), 0);
+            const totalCumulativeRemaining = totalCumulativeBudget - totalCumulativeSpent;
+            const utilizationPercentage = totalCumulativeBudget > 0 ? Math.round((totalCumulativeSpent / totalCumulativeBudget) * 100) : 0;
+
+            // Update summary cards
+            const totalBudgetEl = document.getElementById('quarterTotalBudget');
+            const spentBudgetEl = document.getElementById('quarterSpentBudget');
+            const remainingBudgetEl = document.getElementById('quarterRemainingBudget');
+            const utilizationEl = document.getElementById('quarterUtilizationPercent');
+
+            if (totalBudgetEl) totalBudgetEl.textContent = formatCurrency(totalCumulativeBudget);
+            if (spentBudgetEl) spentBudgetEl.textContent = formatCurrency(totalCumulativeSpent);
+            if (remainingBudgetEl) remainingBudgetEl.textContent = formatCurrency(totalCumulativeRemaining);
+            if (utilizationEl) utilizationEl.textContent = utilizationPercentage + '%';
+
+            renderQuarterlyCards(processedProjects);
+        }
+
+        function renderQuarterlyCards(projects) {
+            const container = document.getElementById('quarterProjectsContainer');
+            const noResults = document.getElementById('quarterNoResults');
+            
+            if (!container) return;
+            
+            if (projects.length === 0) {
+                container.innerHTML = '';
+                if (noResults) noResults.classList.remove('hidden');
+            } else {
+                if (noResults) noResults.classList.add('hidden');
+                container.innerHTML = projects.map(createProjectCard).join('');
+            }
+        }
+
+        function setupQuarterlySearch(quarter) {
+            const searchInput = document.getElementById('quarterSearchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    filterQuarterlyProjects(quarter, e.target.value);
+                });
+            }
+        }
+
+        function filterQuarterlyProjects(quarter, searchTerm) {
+            const quarterKey = `q${quarter.replace('q', '')}`;
+            const allProjects = quarterlyData[quarterKey].projects;
+            
+            const filtered = allProjects.filter(project => {
+                const searchLower = searchTerm.toLowerCase();
+                return (
+                    project.name.toLowerCase().includes(searchLower) ||
+                    project.manager.toLowerCase().includes(searchLower) ||
+                    project.status.toLowerCase().includes(searchLower) ||
+                    project.category.toLowerCase().includes(searchLower) ||
+                    project.id.toString().toLowerCase().includes(searchLower)
+                );
+            });
+            
+            renderQuarterlyCards(filtered);
+        }
+
+        function renderExpenseData(selectedDate = null) {
+            const reportDate = selectedDate || new Date().toISOString().split('T')[0];
+            const datePickerEl = document.getElementById('dailyDatePicker');
+            if (datePickerEl) datePickerEl.value = reportDate;
+
+            // Update report date display
+            const reportDateDisplay = document.getElementById('reportDateDisplay');
+            if (reportDateDisplay) {
+                reportDateDisplay.textContent = new Date(reportDate).toLocaleDateString();
+            }
+
+            // Get all projects and calculate their status as of the selected date
+            const allProjects = [];
+            let totalBudget = 0;
+            let totalSpentAsOfDate = 0;
+            let dailyActivity = 0;
+
+            Object.keys(quarterlyData).forEach(key => {
+                if (key !== 'expenses') {
+                    quarterlyData[key].projects.forEach(project => {
+                        // Get expenses from the separate expense sheet that match this project
+                        const projectExpenses = quarterlyData.expenses.expenses.filter(expense => 
+                            expense.projectId == project.id || 
+                            expense.projectName.toLowerCase().includes(project.name.toLowerCase())
+                        );
+
+                        // Calculate spent amount as of the selected date
+                        const spentAsOfDate = projectExpenses
+                            .filter(expense => expense.date <= reportDate)
+                            .reduce((sum, expense) => sum + expense.amount, 0);
+
+                        // Calculate daily activity (expenses on the selected date)
+                        const dayActivity = projectExpenses
+                            .filter(expense => expense.date === reportDate)
+                            .reduce((sum, expense) => sum + expense.amount, 0);
+
+                        const projectAsOfDate = {
+                            ...project,
+                            spentAsOfDate: spentAsOfDate,
+                            dayActivity: dayActivity,
+                            utilizationAsOfDate: Math.round((spentAsOfDate / project.totalBudget) * 100)
+                        };
+
+                        allProjects.push(projectAsOfDate);
+                        totalBudget += project.totalBudget;
+                        totalSpentAsOfDate += spentAsOfDate;
+                        dailyActivity += dayActivity;
+                    });
+                }
+            });
+
+            // Update summary cards
+            const dailyTotalProjectsEl = document.getElementById('dailyTotalProjects');
+            const dailyTotalBudgetEl = document.getElementById('dailyTotalBudget');
+            const dailySpentBudgetEl = document.getElementById('dailySpentBudget');
+            const dailyDayActivityEl = document.getElementById('dailyDayActivity');
+
+            if (dailyTotalProjectsEl) dailyTotalProjectsEl.textContent = allProjects.length;
+            if (dailyTotalBudgetEl) dailyTotalBudgetEl.textContent = formatCurrency(totalBudget);
+            if (dailySpentBudgetEl) dailySpentBudgetEl.textContent = formatCurrency(totalSpentAsOfDate);
+            if (dailyDayActivityEl) dailyDayActivityEl.textContent = formatCurrency(dailyActivity);
+
+            renderExpenseTable(allProjects);
+        }
+
+        function renderExpenseTable(projects) {
+            const tableBody = document.getElementById('dailyProjectsTable');
+            const noResults = document.getElementById('dailyNoResults');
+            
+            if (!tableBody) return;
+            
+            if (projects.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="px-6 py-12 text-center text-gray-500">
+                            No projects found for this date. Upload data to get started.
+                        </td>
+                    </tr>
+                `;
+                if (noResults) noResults.classList.remove('hidden');
+            } else {
+                if (noResults) noResults.classList.add('hidden');
+                tableBody.innerHTML = projects.map(project => {
+                    const utilizationPercentage = project.utilizationAsOfDate;
+                    
+                    return `
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="text-sm font-medium text-gray-900">${project.id}</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm font-medium text-gray-900">${project.name}</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm text-gray-600">${project.manager}</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(project.status)}">
+                                    ${project.status}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm text-gray-600">${project.category}</div>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="text-sm font-medium text-gray-900">${formatCurrency(project.totalBudget)}</div>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="text-sm font-medium text-gray-900">${formatCurrency(project.spentAsOfDate)}</div>
+                                ${project.dayActivity > 0 ? `<div class="text-xs text-purple-600">+${formatCurrency(project.dayActivity)} today</div>` : ''}
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex items-center justify-end">
+                                    <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                        <div class="h-2 rounded-full ${getBudgetColor(utilizationPercentage)}" 
+                                             style="width: ${Math.min(utilizationPercentage, 100)}%"></div>
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-900">${utilizationPercentage}%</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <button onclick="openProjectModal('${project.id}')" 
+                                        class="text-blue-600 hover:text-blue-800 font-medium text-sm">
+                                    View Details
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        function setupExpenseSearch() {
+            const searchInput = document.getElementById('dailySearchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    filterDailyProjects(e.target.value);
+                });
+            }
+        }
+
+        function filterDailyProjects(searchTerm) {
+            const reportDate = document.getElementById('dailyDatePicker').value || new Date().toISOString().split('T')[0];
+            
+            // Get all projects and calculate their status as of the selected date
+            const allProjects = [];
+            Object.keys(quarterlyData).forEach(key => {
+                if (key !== 'daily') {
+                    quarterlyData[key].projects.forEach(project => {
+                        const spentAsOfDate = project.expenses
+                            .filter(expense => expense.date <= reportDate)
+                            .reduce((sum, expense) => sum + expense.amount, 0);
+
+                        const dayActivity = project.expenses
+                            .filter(expense => expense.date === reportDate)
+                            .reduce((sum, expense) => sum + expense.amount, 0);
+
+                        allProjects.push({
+                            ...project,
+                            spentAsOfDate: spentAsOfDate,
+                            dayActivity: dayActivity,
+                            utilizationAsOfDate: Math.round((spentAsOfDate / project.totalBudget) * 100)
+                        });
+                    });
+                }
+            });
+            
+            const filtered = allProjects.filter(project => {
+                const searchLower = searchTerm.toLowerCase();
+                return (
+                    project.name.toLowerCase().includes(searchLower) ||
+                    project.manager.toLowerCase().includes(searchLower) ||
+                    project.status.toLowerCase().includes(searchLower) ||
+                    project.category.toLowerCase().includes(searchLower) ||
+                    project.id.toString().toLowerCase().includes(searchLower)
+                );
+            });
+            
+            renderDailyTable(filtered);
+        }
+
+        function setupExpenseDatePicker() {
+            const datePickerEl = document.getElementById('dailyDatePicker');
+            if (datePickerEl) {
+                // Set default date to today
+                datePickerEl.value = new Date().toISOString().split('T')[0];
+                
+                datePickerEl.addEventListener('change', function(e) {
+                    renderExpenseData(e.target.value);
+                });
+            }
+        }
+
+        function openProjectModal(projectId) {
+            // Find project across all quarters and determine which quarter we're viewing
+            let project = null;
+            let currentQuarter = null;
+            
+            // Determine current quarter from the view
+            if (currentView.startsWith('q')) {
+                currentQuarter = parseInt(currentView.replace('q', ''));
+            }
+            
+            Object.keys(quarterlyData).forEach(key => {
+                if (key !== 'expenses' && key !== 'earmarked') {
+                    const found = quarterlyData[key].projects.find(p => p.id == projectId);
+                    if (found) {
+                        project = found;
+                        // If no current quarter determined from view, use the quarter where project was found
+                        if (!currentQuarter && key.startsWith('q')) {
+                            currentQuarter = parseInt(key.replace('q', ''));
+                        }
+                    }
+                }
+            });
+            
+            if (!project) return;
+
+            // Calculate actual used budget from expenses based on current quarter context
+            let actualUsedBudget = project.usedBudget; // Default fallback
+            
+            if (currentQuarter) {
+                // Get quarters to include for cumulative expenses
+                const quartersToInclude = getQuartersUpTo(currentQuarter);
+                
+                // Calculate used budget from filtered expenses
+                const filteredExpenses = quarterlyData.expenses.expenses.filter(expense => {
+                    const projectMatches = expense.projectId == projectId || 
+                                         expense.projectName?.toLowerCase().includes(project.name.toLowerCase());
+                    const expenseQuarter = expense.Quarter || expense.quarter || getQuarterFromDate(expense.date);
+                    const quarterMatches = quartersToInclude.includes(expenseQuarter);
+                    return projectMatches && quarterMatches;
+                });
+                
+                actualUsedBudget = filteredExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
+            } else {
+                // For overview or expense tracker views, use all expenses
+                const allExpenses = quarterlyData.expenses.expenses.filter(expense => 
+                    expense.projectId == projectId || 
+                    expense.projectName?.toLowerCase().includes(project.name.toLowerCase())
+                );
+                actualUsedBudget = allExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
+            }
+
+            // Calculate earmarked budget
+            let earmarkedBudget = 0;
+            if (currentQuarter) {
+                const quartersToInclude = getQuartersUpTo(currentQuarter);
+                const filteredEarmarked = quarterlyData.earmarked.items.filter(item => {
+                    const projectMatches = item.projectId == projectId || 
+                                         item.projectName?.toLowerCase().includes(project.name.toLowerCase());
+                    const itemQuarter = item.Quarter || item.quarter || getQuarterFromDate(item.expectedDate);
+                    const quarterMatches = quartersToInclude.includes(itemQuarter);
+                    return projectMatches && quarterMatches;
+                });
+                earmarkedBudget = filteredEarmarked.reduce((sum, item) => sum + (item.amount || 0), 0);
+            } else {
+                const allEarmarked = quarterlyData.earmarked.items.filter(item => 
+                    item.projectId == projectId || 
+                    item.projectName?.toLowerCase().includes(project.name.toLowerCase())
+                );
+                earmarkedBudget = allEarmarked.reduce((sum, item) => sum + (item.amount || 0), 0);
+            }
+
+            const modal = document.getElementById('projectModal');
+            const utilizationPercentage = Math.round((actualUsedBudget / project.totalBudget) * 100);
+            const availableBudget = project.totalBudget - actualUsedBudget - earmarkedBudget;
+
+            document.getElementById('modalTitle').textContent = project.name;
+            document.getElementById('modalProjectId').textContent = project.id;
+            document.getElementById('modalTotalBudget').textContent = formatCurrency(project.totalBudget);
+            document.getElementById('modalUsedBudget').textContent = formatCurrency(actualUsedBudget);
+            document.getElementById('modalEarmarkedBudget').textContent = formatCurrency(earmarkedBudget);
+            document.getElementById('modalAvailableBudget').textContent = formatCurrency(availableBudget);
+            document.getElementById('modalUtilizationPercent').textContent = utilizationPercentage + '%';
+            document.getElementById('modalManager').textContent = project.manager;
+            document.getElementById('modalCategory').textContent = project.category;
+            
+            const statusElement = document.getElementById('modalStatus');
+            statusElement.textContent = project.status;
+            statusElement.className = `ml-2 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(project.status)}`;
+
+            const progressBar = document.getElementById('modalProgressBar');
+            progressBar.style.width = utilizationPercentage + '%';
+            progressBar.className = `h-4 rounded-full transition-all duration-500 ${getBudgetColor(utilizationPercentage)}`;
+
+            // Setup tab functionality
+            setupModalTabs(projectId, currentQuarter);
+
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function setupModalTabs(projectId, currentQuarter) {
+            const expensesTab = document.getElementById('expensesTab');
+            const earmarkedTab = document.getElementById('earmarkedTab');
+            const expensesSection = document.getElementById('expensesSection');
+            const earmarkedSection = document.getElementById('earmarkedSection');
+
+            // Set initial active tab
+            expensesTab.classList.add('border-blue-500', 'text-blue-600');
+            expensesTab.classList.remove('border-transparent', 'text-gray-500');
+
+            // Tab click handlers
+            expensesTab.addEventListener('click', () => {
+                // Update tab styles
+                expensesTab.classList.add('border-blue-500', 'text-blue-600');
+                expensesTab.classList.remove('border-transparent', 'text-gray-500');
+                earmarkedTab.classList.add('border-transparent', 'text-gray-500');
+                earmarkedTab.classList.remove('border-blue-500', 'text-blue-600');
+                
+                // Show/hide sections
+                expensesSection.classList.remove('hidden');
+                earmarkedSection.classList.add('hidden');
+            });
+
+            earmarkedTab.addEventListener('click', () => {
+                // Update tab styles
+                earmarkedTab.classList.add('border-blue-500', 'text-blue-600');
+                earmarkedTab.classList.remove('border-transparent', 'text-gray-500');
+                expensesTab.classList.add('border-transparent', 'text-gray-500');
+                expensesTab.classList.remove('border-blue-500', 'text-blue-600');
+                
+                // Show/hide sections
+                earmarkedSection.classList.remove('hidden');
+                expensesSection.classList.add('hidden');
+            });
+
+            // Load expenses data
+            loadExpensesData(projectId, currentQuarter);
+            
+            // Load earmarked data
+            loadEarmarkedData(projectId, currentQuarter);
+        }
+
+        function loadExpensesData(projectId, currentQuarter) {
+            // Find the project to get its name for matching
+            let project = null;
+            Object.keys(quarterlyData).forEach(key => {
+                if (key !== 'expenses' && key !== 'earmarked') {
+                    const found = quarterlyData[key].projects.find(p => p.id == projectId);
+                    if (found) {
+                        project = found;
+                    }
+                }
+            });
+
+            // Get filtered expenses based on current quarter view
+            let filteredExpenses = [];
+            
+            if (currentQuarter) {
+                // Get quarters to include for cumulative expenses (Q1 for Q1, Q1-Q2 for Q2, etc.)
+                const quartersToInclude = getQuartersUpTo(currentQuarter);
+                
+                // Filter expenses from expense sheet based on Quarter column and current view
+                filteredExpenses = quarterlyData.expenses.expenses.filter(expense => {
+                    // Match by project ID or project name
+                    const projectMatches = expense.projectId == projectId || 
+                                         (project && expense.projectName?.toLowerCase().includes(project.name.toLowerCase()));
+                    
+                    // Check if expense quarter is in our cumulative range
+                    const expenseQuarter = expense.Quarter || expense.quarter || getQuarterFromDate(expense.date);
+                    const quarterMatches = quartersToInclude.includes(expenseQuarter);
+                    
+                    return projectMatches && quarterMatches;
+                });
+            } else {
+                // If no specific quarter context, show all expenses (for overview or expense tracker views)
+                filteredExpenses = quarterlyData.expenses.expenses.filter(expense => 
+                    expense.projectId == projectId || 
+                    (project && expense.projectName?.toLowerCase().includes(project.name.toLowerCase()))
+                );
+            }
+
+            // Sort expenses by date (newest first)
+            filteredExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            const expensesList = document.getElementById('expensesList');
+            
+            // Create quarter context message
+            let quarterContext = '';
+            if (currentQuarter) {
+                const quarterNames = { 1: 'Q1', 2: 'Q1-Q2', 3: 'Q1-Q3', 4: 'Q1-Q4' };
+                quarterContext = ` (${quarterNames[currentQuarter]} cumulative)`;
+            }
+            
+            if (filteredExpenses.length === 0) {
+                expensesList.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="px-4 py-8 text-center text-gray-500">
+                            <div class="flex flex-col items-center">
+                                <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.467-.881-6.08-2.33"></path>
+                                </svg>
+                                <p class="text-sm font-medium">No expense details available${quarterContext}</p>
+                                <p class="text-xs text-gray-400 mt-1">Load expense data from Google Sheets to see breakdown</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                expensesList.innerHTML = filteredExpenses.map(expense => `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm text-gray-900">${expense.description || 'No description'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            <span class="px-2 py-1 bg-gray-100 rounded-full text-xs">${expense.category || 'General'}</span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            ${new Date(expense.date).toLocaleDateString()}
+                            <div class="text-xs text-gray-400">Q${expense.Quarter || expense.quarter || getQuarterFromDate(expense.date)}</div>
+                        </td>
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900 text-right">${formatCurrency(expense.amount || 0)}</td>
+                    </tr>
+                `).join('');
+                
+                // Add total row
+                const totalAmount = filteredExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
+                expensesList.innerHTML += `
+                    <tr class="bg-gray-50 border-t-2 border-gray-200 font-medium">
+                        <td class="px-4 py-3 text-sm text-gray-900">Total Expenses${quarterContext}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">${filteredExpenses.length} items</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">-</td>
+                        <td class="px-4 py-3 text-sm font-bold text-gray-900 text-right">${formatCurrency(totalAmount)}</td>
+                    </tr>
+                `;
+            }
+        }
+
+        function loadEarmarkedData(projectId, currentQuarter) {
+            // Find the project to get its name for matching
+            let project = null;
+            Object.keys(quarterlyData).forEach(key => {
+                if (key !== 'expenses' && key !== 'earmarked') {
+                    const found = quarterlyData[key].projects.find(p => p.id == projectId);
+                    if (found) {
+                        project = found;
+                    }
+                }
+            });
+
+            // Get filtered earmarked items based on current quarter view
+            let filteredEarmarked = [];
+            
+            if (currentQuarter) {
+                const quartersToInclude = getQuartersUpTo(currentQuarter);
+                
+                filteredEarmarked = quarterlyData.earmarked.items.filter(item => {
+                    const projectMatches = item.projectId == projectId || 
+                                         (project && item.projectName?.toLowerCase().includes(project.name.toLowerCase()));
+                    const itemQuarter = item.Quarter || item.quarter || getQuarterFromDate(item.expectedDate);
+                    const quarterMatches = quartersToInclude.includes(itemQuarter);
+                    return projectMatches && quarterMatches;
+                });
+            } else {
+                filteredEarmarked = quarterlyData.earmarked.items.filter(item => 
+                    item.projectId == projectId || 
+                    (project && item.projectName?.toLowerCase().includes(project.name.toLowerCase()))
+                );
+            }
+
+            // Sort by expected date (soonest first)
+            filteredEarmarked.sort((a, b) => new Date(a.expectedDate) - new Date(b.expectedDate));
+
+            const earmarkedList = document.getElementById('earmarkedList');
+            
+            // Create quarter context message
+            let quarterContext = '';
+            if (currentQuarter) {
+                const quarterNames = { 1: 'Q1', 2: 'Q1-Q2', 3: 'Q1-Q3', 4: 'Q1-Q4' };
+                quarterContext = ` (${quarterNames[currentQuarter]} cumulative)`;
+            }
+
+            function getPriorityColor(priority) {
+                const colors = {
+                    'High': 'bg-red-100 text-red-800',
+                    'Medium': 'bg-yellow-100 text-yellow-800',
+                    'Low': 'bg-green-100 text-green-800'
+                };
+                return colors[priority] || 'bg-gray-100 text-gray-800';
+            }
+            
+            if (filteredEarmarked.length === 0) {
+                earmarkedList.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                            <div class="flex flex-col items-center">
+                                <svg class="w-12 h-12 text-orange-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                </svg>
+                                <p class="text-sm font-medium">No earmarked items${quarterContext}</p>
+                                <p class="text-xs text-gray-400 mt-1">Load earmarked data from Google Sheets to see pending items</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                earmarkedList.innerHTML = filteredEarmarked.map(item => `
+                    <tr class="hover:bg-orange-50">
+                        <td class="px-4 py-3 text-sm text-gray-900">${item.description || 'No description'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            <span class="px-2 py-1 bg-orange-100 rounded-full text-xs">${item.category || 'General'}</span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            ${new Date(item.expectedDate).toLocaleDateString()}
+                            <div class="text-xs text-gray-400">Q${item.Quarter || item.quarter || getQuarterFromDate(item.expectedDate)}</div>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            <span class="px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(item.priority)}">${item.priority || 'Medium'}</span>
+                        </td>
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900 text-right">${formatCurrency(item.amount || 0)}</td>
+                    </tr>
+                `).join('');
+                
+                // Add total row
+                const totalAmount = filteredEarmarked.reduce((sum, item) => sum + (item.amount || 0), 0);
+                earmarkedList.innerHTML += `
+                    <tr class="bg-orange-50 border-t-2 border-orange-200 font-medium">
+                        <td class="px-4 py-3 text-sm text-gray-900">Total Earmarked${quarterContext}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">${filteredEarmarked.length} items</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">-</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">-</td>
+                        <td class="px-4 py-3 text-sm font-bold text-gray-900 text-right">${formatCurrency(totalAmount)}</td>
+                    </tr>
+                `;
+            }
+        }
+
+        function closeProjectModal() {
+            const modal = document.getElementById('projectModal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        function showComingSoon() {
+            alert('🚀 Analytics feature coming soon! This will include advanced charts, trend analysis, and detailed insights.');
+        }
+
+        function backToHome() {
+            currentView = 'home';
+            document.getElementById('detailPage').classList.add('hidden');
+            document.getElementById('homePage').classList.remove('hidden');
+        }
+
+
+
+        // Excel template generation
+        function generateExcelTemplate() {
+            try {
+                if (typeof XLSX === 'undefined') {
+                    alert('Excel library not loaded. Please refresh the page and try again.');
+                    return;
+                }
+
+                const wb = XLSX.utils.book_new();
+                
+                const projectsHeaders = ['Project ID', 'Name', 'Manager', 'Status', 'Total Budget', 'Used Budget', 'Category'];
+                const projectsRows = [
+                    ['WEB001', 'Website Redesign', 'Sarah Johnson', 'In Progress', 50000, 32000, 'Web Development'],
+                    ['MOB002', 'Mobile App Development', 'Mike Chen', 'Planning', 120000, 15000, 'Mobile Development'],
+                    ['MKT003', 'Marketing Campaign Q4', 'Emily Rodriguez', 'Active', 75000, 68000, 'Marketing']
+                ];
+                
+                const expensesHeaders = ['Project ID', 'Description', 'Category', 'Date', 'Amount'];
+                const expensesRows = [
+                    ['WEB001', 'UI/UX Design Services', 'Design', '2024-01-15', 12000],
+                    ['WEB001', 'Frontend Development', 'Development', '2024-01-20', 15000],
+                    ['MOB002', 'Project Planning & Analysis', 'Planning', '2024-01-10', 8000],
+                    ['MKT003', 'Social Media Advertising', 'Advertising', '2024-01-05', 25000]
+                ];
+                
+                const projectsWS = XLSX.utils.aoa_to_sheet([projectsHeaders, ...projectsRows]);
+                const expensesWS = XLSX.utils.aoa_to_sheet([expensesHeaders, ...expensesRows]);
+                
+                projectsWS['!cols'] = [
+                    { wch: 12 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 }
+                ];
+                
+                expensesWS['!cols'] = [
+                    { wch: 12 }, { wch: 30 }, { wch: 15 }, { wch: 12 }, { wch: 12 }
+                ];
+                
+                XLSX.utils.book_append_sheet(wb, projectsWS, 'Projects');
+                XLSX.utils.book_append_sheet(wb, expensesWS, 'Expenses');
+                
+                XLSX.writeFile(wb, 'Project_Budget_Template.xlsx');
+                
+                document.getElementById('uploadStatus').innerHTML = `
+                    <div class="text-green-600">
+                        ✓ Template downloaded successfully!
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error generating template:', error);
+                alert('Error generating template: ' + error.message);
+                generateCSVTemplate();
+            }
+        }
+
+        // Google Sheets Integration Functions
+        // URLs are now pre-configured, no need for manual setup
+
+        async function loadSheetData(quarter) {
+            const url = sheetUrls[quarter];
+            if (!url) {
+                alert(`Please set up the Google Sheet URL for ${quarter.toUpperCase()} first.`);
+                return;
+            }
+
+            const statusEl = document.getElementById(`${quarter}Status`);
+            if (statusEl) {
+                statusEl.innerHTML = `
+                    <div class="text-blue-600 text-xs">
+                        🔄 Loading from Google Sheets...
+                    </div>
+                `;
+            }
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const csvText = await response.text();
+                parseCSVData(csvText, quarter);
+                
+                if (statusEl) {
+                    const projectCount = quarter === 'expenses' ? 
+                        quarterlyData[quarter].expenses.length : 
+                        quarterlyData[quarter].projects.length;
+                    
+                    statusEl.innerHTML = `
+                        <div class="text-green-600 text-xs">
+                            ✅ ${projectCount} ${quarter === 'expenses' ? 'expenses' : 'projects'} loaded<br>
+                            <span class="text-gray-500">${new Date().toLocaleString()}</span>
+                        </div>
+                    `;
+                }
+
+                updateLastSyncTime();
+
+                // If currently viewing this quarter, refresh the view
+                if (currentView === quarter) {
+                    if (quarter === 'expenses') {
+                        renderExpenseData();
+                    } else {
+                        renderQuarterlyData(parseInt(quarter.replace('q', '')));
+                    }
+                }
+
+            } catch (error) {
+                console.error(`Error loading ${quarter} data:`, error);
+                if (statusEl) {
+                    statusEl.innerHTML = `
+                        <div class="text-red-600 text-xs">
+                            ❌ Error: ${error.message}<br>
+                            <span class="text-gray-500">Check URL and permissions</span>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        function parseCSVData(csvText, quarter) {
+            const lines = csvText.trim().split('\n');
+            if (lines.length < 2) {
+                throw new Error('CSV file appears to be empty or invalid');
+            }
+
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            const rows = lines.slice(1).map(line => {
+                const values = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        values.push(current.trim().replace(/"/g, ''));
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                values.push(current.trim().replace(/"/g, ''));
+                return values;
+            });
+
+            if (quarter === 'expenses') {
+                // Parse expense data from separate expense sheet
+                const expenses = rows.map(row => {
+                    const expense = {};
+                    headers.forEach((header, index) => {
+                        expense[header] = row[index] || '';
+                    });
+                    
+                    return {
+                        projectId: expense['Project ID'] || expense['ProjectID'] || expense['ID'] || 'Unknown',
+                        projectName: expense['Project Name'] || expense['ProjectName'] || expense['Project'] || 'Unknown Project',
+                        description: expense['Description'] || expense['Item'] || 'Unknown expense',
+                        category: expense['Category'] || expense['Type'] || 'General',
+                        date: expense['Date'] || new Date().toISOString().split('T')[0],
+                        amount: parseFloat(expense['Amount'] || expense['Cost'] || 0) || 0,
+                        Quarter: expense['Quarter'] || expense['Q'] || expense['quarter'] || '1'
+                    };
+                });
+
+                quarterlyData.expenses.expenses = expenses;
+                quarterlyData.expenses.lastUpdated = new Date().toISOString();
+                quarterlyData.expenses.fileName = 'Google Sheets';
+            } else if (quarter === 'earmarked') {
+                // Parse earmarked items data
+                const earmarkedItems = rows.map(row => {
+                    const item = {};
+                    headers.forEach((header, index) => {
+                        item[header] = row[index] || '';
+                    });
+                    
+                    return {
+                        projectId: item['Project ID'] || item['ProjectID'] || item['ID'] || 'Unknown',
+                        projectName: item['Project Name'] || item['ProjectName'] || item['Project'] || 'Unknown Project',
+                        description: item['Description'] || item['Item'] || 'Unknown item',
+                        category: item['Category'] || item['Type'] || 'General',
+                        expectedDate: item['Expected Date'] || item['ExpectedDate'] || item['Date'] || new Date().toISOString().split('T')[0],
+                        amount: parseFloat(item['Amount'] || item['Cost'] || 0) || 0,
+                        Quarter: item['Quarter'] || item['Q'] || item['quarter'] || '1',
+                        priority: item['Priority'] || item['priority'] || 'Medium'
+                    };
+                });
+
+                quarterlyData.earmarked.items = earmarkedItems;
+                quarterlyData.earmarked.lastUpdated = new Date().toISOString();
+                quarterlyData.earmarked.fileName = 'Google Sheets';
+            } else {
+                // Parse quarterly project data and link expenses
+                const projects = rows.map((row, index) => {
+                    const project = {};
+                    headers.forEach((header, headerIndex) => {
+                        project[header] = row[headerIndex] || '';
+                    });
+                    
+                    const projectId = project['Project ID'] || project['ProjectID'] || project['ID'] || (index + 1);
+                    
+                    // Find matching expenses from expense sheet
+                    const projectExpenses = quarterlyData.expenses.expenses.filter(expense => 
+                        expense.projectId == projectId || 
+                        expense.projectName.toLowerCase().includes(project['Name']?.toLowerCase() || '')
+                    );
+                    
+                    return {
+                        id: projectId,
+                        name: project['Name'] || project['Project Name'] || project['ProjectName'] || 'Unnamed Project',
+                        manager: project['Manager'] || project['Project Manager'] || project['ProjectManager'] || 'Unknown',
+                        status: project['Status'] || 'Unknown',
+                        totalBudget: parseFloat(project['Total Budget'] || project['TotalBudget'] || project['Budget'] || 0) || 0,
+                        usedBudget: parseFloat(project['Used Budget'] || project['UsedBudget'] || project['Spent'] || 0) || 0,
+                        category: project['Category'] || project['Type'] || 'General',
+                        expenses: projectExpenses
+                    };
+                });
+
+                quarterlyData[quarter].projects = projects;
+                quarterlyData[quarter].lastUpdated = new Date().toISOString();
+                quarterlyData[quarter].fileName = 'Google Sheets';
+            }
+        }
+
+        async function loadAllSheets() {
+            try {
+                // Load expenses and earmarked items first, then projects
+                const dataPromises = [];
+                
+                if (sheetUrls['expenses']) {
+                    dataPromises.push(loadSheetData('expenses'));
+                }
+                
+                if (sheetUrls['earmarked']) {
+                    dataPromises.push(loadSheetData('earmarked'));
+                }
+                
+                await Promise.all(dataPromises);
+                
+                // Then load all quarters
+                const quarters = ['q1', 'q2', 'q3', 'q4'];
+                const quarterPromises = quarters.map(quarter => {
+                    if (sheetUrls[quarter]) {
+                        return loadSheetData(quarter);
+                    }
+                    return Promise.resolve();
+                });
+
+                await Promise.all(quarterPromises);
+                alert('🎉 All available sheets loaded successfully! Expenses and earmarked items were loaded first, then linked to projects.');
+            } catch (error) {
+                console.error('Error loading sheets:', error);
+                alert('⚠️ Some sheets failed to load. Check the individual status messages.');
+            }
+        }
+
+        function updateLastSyncTime() {
+            const lastSyncEl = document.getElementById('lastSyncTime');
+            if (lastSyncEl) {
+                lastSyncEl.textContent = `Last synced: ${new Date().toLocaleString()}`;
+            }
+        }
+
+        function toggleAutoRefresh() {
+            const button = document.getElementById('toggleAutoRefresh');
+            const intervalSelect = document.getElementById('refreshInterval');
+            const interval = parseInt(intervalSelect.value);
+
+            if (isAutoRefreshActive) {
+                // Stop auto-refresh
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                    autoRefreshInterval = null;
+                }
+                isAutoRefreshActive = false;
+                button.textContent = 'Start Auto-Sync';
+                button.className = 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm';
+            } else {
+                // Start auto-refresh
+                if (interval > 0) {
+                    autoRefreshInterval = setInterval(() => {
+                        loadAllSheets();
+                    }, interval * 1000);
+                    
+                    isAutoRefreshActive = true;
+                    button.textContent = 'Stop Auto-Sync';
+                    button.className = 'bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm';
+                } else {
+                    alert('Please select a refresh interval first.');
+                }
+            }
+        }
+
+        function showInstructions() {
+            document.getElementById('instructionsModal').classList.remove('hidden');
+        }
+
+        function hideInstructions() {
+            document.getElementById('instructionsModal').classList.add('hidden');
+        }
+
+
+
+        function processExcelFile(file, quarter = null) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    const projectsSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const projectsData = XLSX.utils.sheet_to_json(projectsSheet);
+                    
+                    let expensesData = [];
+                    if (workbook.SheetNames.length > 1) {
+                        const expensesSheet = workbook.Sheets[workbook.SheetNames[1]];
+                        expensesData = XLSX.utils.sheet_to_json(expensesSheet);
+                    }
+                    
+                    const processedProjects = projectsData.map((row, index) => {
+                        const customProjectId = row['Project ID'] || row['ProjectID'] || row['ID'];
+                        const finalProjectId = customProjectId ? customProjectId : (index + 1);
+                        
+                        const projectExpenses = expensesData.filter(expense => 
+                            expense['Project ID'] === finalProjectId || 
+                            expense['ProjectID'] === finalProjectId ||
+                            expense['Project_ID'] === finalProjectId
+                        );
+                        
+                        return {
+                            id: finalProjectId,
+                            name: row['Name'] || row['Project Name'] || row['ProjectName'] || 'Unnamed Project',
+                            manager: row['Manager'] || row['Project Manager'] || row['ProjectManager'] || 'Unknown',
+                            status: row['Status'] || 'Unknown',
+                            totalBudget: parseFloat(row['Total Budget'] || row['TotalBudget'] || row['Budget'] || 0),
+                            usedBudget: parseFloat(row['Used Budget'] || row['UsedBudget'] || row['Spent'] || 0),
+                            category: row['Category'] || row['Type'] || 'General',
+                            expenses: projectExpenses.map(expense => ({
+                                description: expense['Description'] || expense['Item'] || 'Unknown expense',
+                                category: expense['Category'] || expense['Type'] || 'General',
+                                date: expense['Date'] || new Date().toISOString().split('T')[0],
+                                amount: parseFloat(expense['Amount'] || expense['Cost'] || 0)
+                            }))
+                        };
+                    });
+                    
+                    if (quarter) {
+                        // Store data for specific quarter
+                        quarterlyData[quarter].projects = processedProjects;
+                        quarterlyData[quarter].lastUpdated = new Date().toISOString();
+                        quarterlyData[quarter].fileName = file.name;
+                        
+                        const statusEl = document.getElementById(`${quarter}Status`);
+                        if (statusEl) {
+                            statusEl.innerHTML = `
+                                <div class="text-green-600 text-xs">
+                                    ✓ ${processedProjects.length} projects loaded<br>
+                                    <span class="text-gray-500">${new Date().toLocaleDateString()}</span>
+                                </div>
+                            `;
+                        }
+                        
+                        // If currently viewing this quarter, refresh the view
+                        if (currentView === quarter) {
+                            renderQuarterlyData(parseInt(quarter.replace('q', '')));
+                        }
+                    } else if (quarter === 'daily') {
+                        // Process daily tracking data
+                        const dailyExpenses = [];
+                        expensesData.forEach(expense => {
+                            dailyExpenses.push({
+                                projectName: expense['Project Name'] || expense['ProjectName'] || 'Unknown Project',
+                                description: expense['Description'] || expense['Item'] || 'Unknown expense',
+                                category: expense['Category'] || expense['Type'] || 'General',
+                                date: expense['Date'] || new Date().toISOString().split('T')[0],
+                                amount: parseFloat(expense['Amount'] || expense['Cost'] || 0)
+                            });
+                        });
+                        
+                        quarterlyData.daily.expenses = dailyExpenses;
+                        quarterlyData.daily.lastUpdated = new Date().toISOString();
+                        quarterlyData.daily.fileName = file.name;
+                        
+                        const statusEl = document.getElementById('dailyStatus');
+                        if (statusEl) {
+                            statusEl.innerHTML = `
+                                <div class="text-green-600 text-xs">
+                                    ✓ ${dailyExpenses.length} expenses loaded<br>
+                                    <span class="text-gray-500">${new Date().toLocaleDateString()}</span>
+                                </div>
+                            `;
+                        }
+                    }
+                    
+
+                    
+                } catch (error) {
+                    const statusEl = quarter ? document.getElementById(`${quarter}Status`) : null;
+                    if (statusEl) {
+                        statusEl.innerHTML = `
+                            <div class="text-red-600 text-xs">
+                                ✗ Error: ${error.message}
+                            </div>
+                        `;
+                    }
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // Sync button handler
+            document.getElementById('syncAllData').addEventListener('click', async function() {
+                const button = this;
+                const statusEl = document.getElementById('syncStatus');
+                
+                button.disabled = true;
+                button.textContent = '🔄 Syncing...';
+                statusEl.textContent = 'Loading data from Google Sheets...';
+                
+                try {
+                    await loadAllSheets();
+                    statusEl.textContent = 'All data synced successfully!';
+                    setTimeout(() => {
+                        statusEl.textContent = '';
+                    }, 3000);
+                } catch (error) {
+                    statusEl.textContent = 'Sync failed. Please try again.';
+                    setTimeout(() => {
+                        statusEl.textContent = '';
+                    }, 5000);
+                } finally {
+                    button.disabled = false;
+                    button.textContent = '🔄 Sync All Data';
+                }
+            });
+
+            // Back to home button
+            document.getElementById('backToHome').addEventListener('click', backToHome);
+
+            // Modal close functionality
+            document.getElementById('closeModal').addEventListener('click', closeProjectModal);
+            
+            document.getElementById('projectModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeProjectModal();
+                }
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeProjectModal();
+                }
+            });
+
+            // Instructions modal close on outside click
+            document.getElementById('instructionsModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hideInstructions();
+                }
+            });
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9883fb7bc6990890',t:'MTc1OTQwNTgyOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
